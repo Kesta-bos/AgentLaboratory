@@ -117,3 +117,47 @@ class AnthropicProvider:
                 temperature=temperature,
             )
         return message.content[0].text
+
+
+class OpenRouterProvider:
+    @staticmethod
+    def get_response(
+        api_key: str,
+        model_name: str,
+        user_prompt: str,
+        system_prompt: str,
+        temperature: float = None,
+        base_url: str | None = None,
+    ) -> str:
+        # Remove 'openrouter/' prefix if present for the actual API call
+        actual_model_name = model_name
+        if model_name.startswith("openrouter/"):
+            actual_model_name = model_name[len("openrouter/"):]
+        
+        client_config = {
+            "api_key": api_key,
+        }
+        
+        if base_url:
+            client_config["base_url"] = base_url
+            
+        client = OpenAI(**client_config)
+        
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt}
+        ]
+        
+        if temperature is None:
+            completion = client.chat.completions.create(
+                model=actual_model_name,
+                messages=messages,
+            )
+        else:
+            completion = client.chat.completions.create(
+                model=actual_model_name,
+                messages=messages,
+                temperature=temperature,
+            )
+            
+        return completion.choices[0].message.content

@@ -7,10 +7,15 @@ Note: You can set `OLLAMA_API_BASE_URL` to your Ollama API URL if you are using 
       Then you can set any model string in the `args.llm_backend` flag or the `Custom LLM Backend (For Ollama)` field in the UI.
 
 Read more about Ollama: https://ollama.com/blog/openai-compatibility
+
+For OpenRouter:
+      Set your OpenRouter API key in the environment variable `OPENROUTER_API_KEY`.
+      Use model names with 'openrouter/' prefix to automatically use the OpenRouter provider.
 """
 GOOGLE_GENERATIVE_API_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/"
 DEEPSEEK_API_BASE_URL = "https://api.deepseek.com/v1"
 OLLAMA_API_BASE_URL = "http://localhost:11434/v1/"
+OPENROUTER_API_BASE_URL = "https://openrouter.ai/api/v1"
 
 """
 TASK_NOTE_LLM Configuration Guide
