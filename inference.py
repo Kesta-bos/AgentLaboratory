@@ -2,8 +2,13 @@ import os
 import tiktoken
 import time
 
-from config import GOOGLE_GENERATIVE_API_BASE_URL, DEEPSEEK_API_BASE_URL, OLLAMA_API_BASE_URL
-from provider import AnthropicProvider, OpenaiProvider
+from config import (
+    GOOGLE_GENERATIVE_API_BASE_URL, 
+    DEEPSEEK_API_BASE_URL, 
+    OLLAMA_API_BASE_URL,
+    OPENROUTER_API_BASE_URL
+)
+from provider import AnthropicProvider, OpenaiProvider, OpenRouterProvider
 from utils import remove_thinking_process
 
 TOKENS_IN = dict()
@@ -26,6 +31,7 @@ def curr_cost_est():
         "deepseek-chat": 0.27 / 1000000,
         "gemini-2.0-flash": 0.10 / 1000000,
         "gemini-2.0-flash-lite": 0.075 / 1000000,
+        "openrouter": 5.00 / 1000000,  # Default estimate for OpenRouter models
     }
     costmap_out = {
         "gpt-4o": 10.00 / 1000000,
@@ -40,6 +46,7 @@ def curr_cost_est():
         "deepseek-chat": 1.10 / 1000000,
         "gemini-2.0-flash": 0.40 / 1000000,
         "gemini-2.0-flash-lite": 0.30 / 1000000,
+        "openrouter": 15.00 / 1000000,  # Default estimate for OpenRouter models
     }
     return sum([costmap_in[_] * TOKENS_IN[_] for _ in TOKENS_IN]) + sum(
         [costmap_out[_] * TOKENS_OUT[_] for _ in TOKENS_OUT])
@@ -59,17 +66,33 @@ def query_model(model_str, prompt, system_prompt,
     preload_anthropic_api = os.getenv('ANTHROPIC_API_KEY')
     preload_google_api = os.getenv('GOOGLE_API_KEY')
     preload_deepseek_api = os.getenv('DEEPSEEK_API_KEY')
+    preload_openrouter_api = os.getenv('OPENROUTER_API_KEY')
 
     # If no API key is provided, raise an exception
     if (preloaded_openai_api is None and
         preload_anthropic_api is None and
         preload_google_api is None and
-        preload_deepseek_api is None):
+        preload_deepseek_api is None and
+        preload_openrouter_api is None):
         raise Exception("No API key provided in query_model function")
 
     for _ in range(tries):
         try:
-            if model_str == "gpt-4o-mini" or model_str == "gpt4omini" or model_str == "gpt-4omini" or model_str == "gpt4o-mini":
+            # Prioritize OpenRouter if model name contains 'openrouter/'
+            if 'openrouter/' in model_str:
+                # Keep the original model_str for cost tracking
+                original_model_str = model_str
+                answer = OpenRouterProvider.get_response(
+                    api_key=os.getenv('OPENROUTER_API_KEY'),
+                    model_name=model_str,
+                    user_prompt=prompt,
+                    system_prompt=system_prompt,
+                    temperature=temp,
+                    base_url=OPENROUTER_API_BASE_URL,
+                )
+                # Use a simplified model name for cost tracking
+                model_str = "openrouter"
+            elif model_str == "gpt-4o-mini" or model_str == "gpt4omini" or model_str == "gpt-4omini" or model_str == "gpt4o-mini":
                 model_str = "gpt-4o-mini"
                 answer = OpenaiProvider.get_response(
                     api_key=os.getenv('OPENAI_API_KEY'),
@@ -191,7 +214,7 @@ def query_model(model_str, prompt, system_prompt,
                     if model_str in [
                         "o1", "o1-preview", "o1-mini", "o3-mini",
                         "claude-3-7-sonnet", "claude-3-5-sonnet", "claude-3-5-haiku",
-                        "gemini-2.0-flash", "gemini-2.0-flash-lite"
+                        "gemini-2.0-flash", "gemini-2.0-flash-lite", "openrouter"
                     ]:
                         model_encoding = tiktoken.encoding_for_model("gpt-4o")
                     elif model_str in ["deepseek-chat"]:
